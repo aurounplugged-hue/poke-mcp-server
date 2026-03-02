@@ -11,7 +11,7 @@ app = Server("poke-mcp-server")
 sse = SseServerTransport("/message/")
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:
-return [
+    return [
 types.Tool(
 name="ask_claude",
 description="Ask Claude a question or request",

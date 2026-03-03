@@ -12,7 +12,7 @@ app = Server(
     name="poke-mcp-server",
     version="1.0.0"
 )
-sse = SseServerTransport("/message/")
+sse = SseServerTransport("/message")
 
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:

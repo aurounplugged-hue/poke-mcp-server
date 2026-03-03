@@ -1,6 +1,7 @@
 from starlette.applications import Starlette
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 from starlette.responses import JSONResponse, Response
+from starlette.requests import Request
 from mcp.server.sse import SseServerTransport
 from mcp.server import Server
 import mcp.types as types
@@ -12,7 +13,7 @@ app = Server(
     name="poke-mcp-server",
     version="1.0.0"
 )
-sse = SseServerTransport("/message")
+sse = SseServerTransport("/messages/")
 
 @app.list_tools()
 async def list_tools() -> list[types.Tool]:
@@ -47,7 +48,7 @@ async def call_tool(name: str, arguments: dict):
         print(f"Error in call_tool: {e}")
         return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
-async def handle_sse(request):
+async def handle_sse(request: Request):
     print("SSE connection initiated")
     async with sse.connect_sse(
         request.scope,
@@ -59,17 +60,9 @@ async def handle_sse(request):
             streams[1],
             app.create_initialization_options()
         )
+    return Response()
 
-async def handle_message(request):
-    print("Message received")
-    await sse.handle_post_message(
-        request.scope,
-        request.receive,
-        request._send
-    )
-    return Response(status_code=202)
-
-async def handle_info(request):
+async def handle_info(request: Request):
     return JSONResponse({
         "name": "poke-mcp-server",
         "version": "1.0.0",
@@ -79,8 +72,8 @@ async def handle_info(request):
 starlette_app = Starlette(
     routes=[
         Route("/", handle_info),
-        Route("/sse", handle_sse),
-        Route("/message", handle_message, methods=["POST"]),
+        Route("/sse", endpoint=handle_sse, methods=["GET"]),
+        Mount("/messages/", app=sse.handle_post_message),
     ]
 )
 

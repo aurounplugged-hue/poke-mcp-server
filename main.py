@@ -67,6 +67,7 @@ async def handle_message(request):
         request.receive,
         request._send
     )
+    return Response(status_code=202)
 
 async def handle_info(request):
     return JSONResponse({

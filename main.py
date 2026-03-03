@@ -1,6 +1,6 @@
 from starlette.applications import Starlette
 from starlette.routing import Route
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.requests import Request
 from mcp.server.sse import SseServerTransport
 from mcp.server import Server
@@ -168,6 +168,14 @@ async def handle_sse(request: Request):
             app.create_initialization_options()
         )
 
+async def handle_messages(request: Request):
+    print("Message received")
+    await sse.handle_post_message(
+        request.scope,
+        request.receive,
+        request._send
+    )
+
 async def handle_info(request: Request):
     return JSONResponse({
         "name": "poke-mcp-server",
@@ -179,7 +187,7 @@ starlette_app = Starlette(
     routes=[
         Route("/", handle_info),
         Route("/sse", endpoint=handle_sse, methods=["GET"]),
-        Route("/messages", endpoint=sse.handle_post_message, methods=["POST"]),
+        Route("/messages", endpoint=handle_messages, methods=["POST"]),
     ]
 )
 

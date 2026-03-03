@@ -1,6 +1,6 @@
 from starlette.applications import Starlette
 from starlette.routing import Route
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse
 from starlette.requests import Request
 from mcp.server.sse import SseServerTransport
 from mcp.server import Server
@@ -98,10 +98,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 response = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    json={
-                        "model": "gpt-4o-mini",
-                        "messages": [{"role": "user", "content": prompt}]
-                    }
+                    json={"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
                 )
                 if response.status_code != 200:
                     return [types.TextContent(type="text", text=f"OpenAI error {response.status_code}: {response.text}")]
@@ -134,10 +131,7 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
                 response = await client.post(
                     "https://api.deepseek.com/chat/completions",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    json={
-                        "model": "deepseek-chat",
-                        "messages": [{"role": "user", "content": prompt}]
-                    }
+                    json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}]}
                 )
                 if response.status_code != 200:
                     return [types.TextContent(type="text", text=f"DeepSeek error {response.status_code}: {response.text}")]
@@ -168,14 +162,6 @@ async def handle_sse(request: Request):
             app.create_initialization_options()
         )
 
-async def handle_messages(request: Request):
-    print("Message received")
-    await sse.handle_post_message(
-        request.scope,
-        request.receive,
-        request._send
-    )
-
 async def handle_info(request: Request):
     return JSONResponse({
         "name": "poke-mcp-server",
@@ -183,14 +169,23 @@ async def handle_info(request: Request):
         "protocol_version": "2024-11-05"
     })
 
+async def messages_asgi(scope, receive, send):
+    print("Message received")
+    await sse.handle_post_message(scope, receive, send)
+
 starlette_app = Starlette(
     routes=[
         Route("/", handle_info),
         Route("/sse", endpoint=handle_sse, methods=["GET"]),
-        Route("/messages", endpoint=handle_messages, methods=["POST"]),
     ]
 )
 
+async def root_app(scope, receive, send):
+    if scope["type"] == "http" and scope["path"] == "/messages":
+        await messages_asgi(scope, receive, send)
+    else:
+        await starlette_app(scope, receive, send)
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    uvicorn.run(starlette_app, host="0.0.0.0", port=port)
+    uvicorn.run(root_app, host="0.0.0.0", port=port)

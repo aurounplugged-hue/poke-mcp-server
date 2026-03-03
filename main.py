@@ -52,7 +52,7 @@ async def handle_sse(request):
     async with sse.connect_sse(
         request.scope,
         request.receive,
-        request.send
+        request._send
     ) as streams:
         await app.run(
             streams[0],
@@ -65,7 +65,7 @@ async def handle_message(request):
     await sse.handle_post_message(
         request.scope,
         request.receive,
-        request.send
+        request._send
     )
 
 async def handle_info(request):

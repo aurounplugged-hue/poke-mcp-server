@@ -1,5 +1,5 @@
 from starlette.applications import Starlette
-from starlette.routing import Mount, Route
+from starlette.routing import Route
 from starlette.responses import JSONResponse
 from starlette.requests import Request
 from mcp.server.sse import SseServerTransport
@@ -179,7 +179,7 @@ starlette_app = Starlette(
     routes=[
         Route("/", handle_info),
         Route("/sse", endpoint=handle_sse, methods=["GET"]),
-        Mount("/messages", app=sse.handle_post_message),
+        Route("/messages", endpoint=sse.handle_post_message, methods=["POST"]),
     ]
 )
 
